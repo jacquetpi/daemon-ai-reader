@@ -45,7 +45,7 @@ def __convert_cg_to_dict(header : list, data_single_gc : list):
     for position, query in enumerate(header):
         if 'N/A' in data_single_gc[position]:
             value = 'NA'
-        elif '[' in query: # if a unit is written, like [MiB], we have to strip it from value # TODO: --nounit?
+        elif '[' in query: # if a unit is written, like [MiB], we have to strip it from value # TODO: useful with --nounit?
             value = float(re.sub("[^\d\.]", "", data_single_gc[position]))
         else:
             value = data_single_gc[position].strip()
@@ -53,14 +53,14 @@ def __convert_cg_to_dict(header : list, data_single_gc : list):
     return results
 
 def query_smi():
-    COMMAND = "nvidia-smi --query-gpu=" + SMI_QUERY_FLAT + " --format=csv"
+    COMMAND = "nvidia-smi --query-gpu=" + SMI_QUERY_FLAT + " --format=csv,nounits"
     smi_data = __generic_smi(COMMAND)
     header = smi_data[0]
     data   = smi_data[1:]
     return [__convert_cg_to_dict(header, data_single_gc) for data_single_gc in data]
 
 def watch_pids():
-    COMMAND = "nvidia-smi --query-compute-apps=pid,name,gpu_uuid --format=csv"
+    COMMAND = "nvidia-smi --query-compute-apps=pid,name,gpu_uuid --format=csv,nounits"
     smi_data = __generic_smi(COMMAND)
     if smi_data:
         header = smi_data[0]
@@ -92,6 +92,7 @@ def loop_read():
 
         if current_pids:
             smi_measures = query_smi()
+            # TODO: other kind of mesures, such as RAPL, and others
             output(smi_measures)
 
         time_to_sleep = (DELAY_S*10**9) - (time.time_ns() - time_begin)
@@ -102,7 +103,7 @@ def output(smi_measures : list):
         total_draw  = 0
         total_limit = 0
         for gc_as_dict in smi_measures:
-            print(gc_as_dict['index'] + ':', str(gc_as_dict['utilization.gpu']) + '%', str(gc_as_dict['power.draw']) + '/' + str(gc_as_dict['power.max_limit']) + ' W')
+            print(gc_as_dict['uuid'] + ':', str(gc_as_dict['utilization.gpu']) + '%', str(gc_as_dict['power.draw']) + '/' + str(gc_as_dict['power.max_limit']) + ' W')
             total_draw += gc_as_dict['power.draw']
             total_limit+= gc_as_dict['power.max_limit']
         print('Total:', str(round(total_draw,PRECISION)) + '/' + str(round(total_limit,PRECISION)) + ' W')
