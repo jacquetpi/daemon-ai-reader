@@ -49,7 +49,6 @@ def __convert_cg_to_dict(header : list, data_single_gc : list):
             value = float(re.sub("[^\d\.]", "", data_single_gc[position]))
         else:
             value = data_single_gc[position].strip()
-        query = re.sub("[^\d\.]", "", query)
         results[query.strip()] = value
     return results
 
@@ -101,14 +100,8 @@ def loop_read():
         else: print('Warning: overlap iteration', -(time_to_sleep/10**9), 's')
 
 def output(smi_measures : list):
-        total_draw  = 0
-        total_limit = 0
         for gc_as_dict in smi_measures:
-            print(gc_as_dict['uuid'] + ':', str(gc_as_dict['utilization.gpu']) + '%', str(gc_as_dict['power.draw']) + '/' + str(gc_as_dict['power.max_limit']) + ' W')
-            total_draw += gc_as_dict['power.draw']
-            total_limit+= gc_as_dict['power.max_limit']
-        print('Total:', str(round(total_draw,PRECISION)) + '/' + str(round(total_limit,PRECISION)) + ' W')
-        print('---')
+            print(gc_as_dict)
 
 ###########################################
 # Entrypoint, manage arguments
