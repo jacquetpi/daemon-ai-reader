@@ -92,13 +92,13 @@ def loop_read():
 
         if current_pids:
             smi_measures = query_smi()
-            output()
+            output(smi_measures)
 
         time_to_sleep = (DELAY_S*10**9) - (time.time_ns() - time_begin)
         if time_to_sleep>0: time.sleep(time_to_sleep/10**9)
         else: print('Warning: overlap iteration', -(time_to_sleep/10**9), 's')
 
-def output(smi_measures : list, time_since_launch : int):
+def output(smi_measures : list):
         total_draw  = 0
         total_limit = 0
         for gc_as_dict in smi_measures:
