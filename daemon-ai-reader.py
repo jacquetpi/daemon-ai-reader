@@ -3,14 +3,14 @@ import subprocess as sp
 from os import listdir
 from os.path import isfile, join, exists
 
-SMI_QUERY      = ['index','gpu_name','utilization.gpu','power.draw','power.max_limit']
+SMI_QUERY      = ['gpu_uuid','utilization.gpu','power.draw','power.max_limit']
 SMI_QUERY_FLAT = ','.join(SMI_QUERY)
-DELAY_S        = 5
+DELAY_S        = 1
 PRECISION      = 2
 LIVE_DISPLAY   = False
 
 def print_usage():
-    print('python3 nvidiasmi-reader.py [--help] [--live] [--output=' + OUTPUT_FILE + '] [--delay=' + str(DELAY_S) + ' (in sec)] [--precision=' + str(PRECISION) + ' (number of decimal)]')
+    print('python3 daemon-ai-reader.py [--help] [--delay=' + str(DELAY_S) + ' (in sec)] [--precision=' + str(PRECISION) + ' (number of decimal)]')
 
 ###########################################
 # Read NVIDIA SMI
@@ -45,7 +45,7 @@ def __convert_cg_to_dict(header : list, data_single_gc : list):
     for position, query in enumerate(SMI_QUERY):
         if 'N/A' in data_single_gc[position]:
             value = 'NA'
-        elif '[' in header[position]: # if a unit is written, like [MiB], we have to strip it from value
+        elif '[' in header[position]: # if a unit is written, like [MiB], we have to strip it from value # TODO: --nounit?
             value = float(re.sub("[^\d\.]", "", data_single_gc[position]))
         else:
             value = data_single_gc[position].strip()
@@ -59,16 +59,39 @@ def query_smi():
     data   = smi_data[1:]
     return [__convert_cg_to_dict(header, data_single_gc) for data_single_gc in data]
 
+def watch_pids():
+    COMMAND = "nvidia-smi --query-compute-apps=pid,name,gpu_uuid --format=csv"
+    smi_data = __generic_smi(COMMAND)
+    if smi_data:
+        header = smi_data[0]
+        data   = smi_data[1:]
+        return [__convert_cg_to_dict(header, data_single_gc) for data_single_gc in data]
+    return []
+
+def manage_pids(active_pids, last_pids):
+    for pid_line in last_pids:
+        if pid_line['pid'] not in active_pids:
+            print('A new GPU was found', pid_line['name'])
+            active_pids.append(pid_line['pid'])
+    for pid in active_pids:
+        if pid not in [x['pid'] for x  in last_pids]:
+            print('A GPU related PID finished its work')
+            active_pids.remove(pid)
+
 ###########################################
 # Main loop, read periodically
 ###########################################
 def loop_read():
     launch_at = time.time_ns()
+    active_pids = []
     while True:
         time_begin = time.time_ns()
+        
+        current_pids = watch_pids()
+        manage_pids(active_pids, current_pids)
 
-        smi_measures = query_smi()
-        output(smi_measures=smi_measures, time_since_launch=int((time_begin-launch_at)/(10**9)))
+        if current_pids:
+            smi_measures = query_smi()
 
         time_to_sleep = (DELAY_S*10**9) - (time.time_ns() - time_begin)
         if time_to_sleep>0: time.sleep(time_to_sleep/10**9)
