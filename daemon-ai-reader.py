@@ -45,10 +45,11 @@ def __convert_cg_to_dict(header : list, data_single_gc : list):
     for position, query in enumerate(header):
         if 'N/A' in data_single_gc[position]:
             value = 'NA'
-        elif '[' in query: # if a unit is written, like [MiB], we have to strip it from value # TODO: useful with --nounit?
+        elif '[' in query: # if a unit is written, like [MiB], we have to strip it # TODO: useful with --nounit?
             value = float(re.sub("[^\d\.]", "", data_single_gc[position]))
         else:
             value = data_single_gc[position].strip()
+        query = re.sub("[^\d\.]", "", query)
         results[query.strip()] = value
     return results
 
