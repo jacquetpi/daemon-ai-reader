@@ -1,0 +1,10 @@
+[Unit]
+Description=Daemon AI reader
+
+[Service]
+User=root
+Type=simple
+ExecStart=/bin/bash -c 'python3 /usr/local/src/daemon-ai-reader/daemon-ai-reader.py'
+
+[Install]
+WantedBy=multi-user.target
