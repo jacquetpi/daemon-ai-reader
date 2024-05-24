@@ -42,14 +42,14 @@ def discover_smi():
 
 def __convert_cg_to_dict(header : list, data_single_gc : list):
     results = {}
-    for position, query in enumerate(SMI_QUERY):
+    for position, query in enumerate(header):
         if 'N/A' in data_single_gc[position]:
             value = 'NA'
-        elif '[' in header[position]: # if a unit is written, like [MiB], we have to strip it from value # TODO: --nounit?
+        elif '[' in query: # if a unit is written, like [MiB], we have to strip it from value # TODO: --nounit?
             value = float(re.sub("[^\d\.]", "", data_single_gc[position]))
         else:
             value = data_single_gc[position].strip()
-        results[query] = value
+        results[query.strip()] = value
     return results
 
 def query_smi():
@@ -71,7 +71,7 @@ def watch_pids():
 def manage_pids(active_pids, last_pids):
     for pid_line in last_pids:
         if pid_line['pid'] not in active_pids:
-            print('A new GPU was found', pid_line['name'])
+            print('A new GPU was found executing', "'" + pid_line['process_name'] + "'")
             active_pids.append(pid_line['pid'])
     for pid in active_pids:
         if pid not in [x['pid'] for x  in last_pids]:
@@ -92,14 +92,13 @@ def loop_read():
 
         if current_pids:
             smi_measures = query_smi()
+            output()
 
         time_to_sleep = (DELAY_S*10**9) - (time.time_ns() - time_begin)
         if time_to_sleep>0: time.sleep(time_to_sleep/10**9)
         else: print('Warning: overlap iteration', -(time_to_sleep/10**9), 's')
 
 def output(smi_measures : list, time_since_launch : int):
-
-    if LIVE_DISPLAY and smi_measures:
         total_draw  = 0
         total_limit = 0
         for gc_as_dict in smi_measures:
