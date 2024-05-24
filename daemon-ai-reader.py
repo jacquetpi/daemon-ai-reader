@@ -77,6 +77,7 @@ def manage_pids(active_pids, last_pids):
     for pid in active_pids:
         if pid not in [x['pid'] for x  in last_pids]:
             print('A GPU related PID finished its work')
+            # TODO: send report
             active_pids.remove(pid)
 
 ###########################################

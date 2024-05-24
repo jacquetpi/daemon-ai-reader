@@ -1,50 +1,33 @@
+# TensorFlow and tf.keras
 import tensorflow as tf
-from tensorflow.keras.datasets import imdb
-from tensorflow.keras.layers import Embedding, Dense, LSTM
-from tensorflow.keras.losses import BinaryCrossentropy
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-# Model configuration
-additional_metrics = ['accuracy']
-batch_size = 128
-embedding_output_dims = 15
-loss_function = BinaryCrossentropy()
-max_sequence_length = 300
-num_distinct_words = 5000
-number_of_epochs = 5
-optimizer = Adam()
-validation_split = 0.20
-verbosity_mode = 1
+# Helper libraries
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Disable eager execution
-tf.compat.v1.disable_eager_execution()
+fashion_mnist = tf.keras.datasets.fashion_mnist
 
-# Load dataset
-(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=num_distinct_words)
-print(x_train.shape)
-print(x_test.shape)
+(train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data()
 
-# Pad all sequences
-padded_inputs = pad_sequences(x_train, maxlen=max_sequence_length, value = 0.0) # 0.0 because it corresponds with <PAD>
-padded_inputs_test = pad_sequences(x_test, maxlen=max_sequence_length, value = 0.0) # 0.0 because it corresponds with <PAD>
+class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
+               'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
 
-# Define the Keras model
-model = Sequential()
-model.add(Embedding(num_distinct_words, embedding_output_dims, input_length=max_sequence_length))
-model.add(LSTM(10))
-model.add(Dense(1, activation='sigmoid'))
+train_images = train_images / 255.0
 
-# Compile the model
-model.compile(optimizer=optimizer, loss=loss_function, metrics=additional_metrics)
+test_images = test_images / 255.0
 
-# Give a summary
-model.summary()
+model = tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=(28, 28)),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(10)
+])
 
-# Train the model
-history = model.fit(padded_inputs, y_train, batch_size=batch_size, epochs=number_of_epochs, verbose=verbosity_mode, validation_split=validation_split)
+model.compile(optimizer='adam',
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              metrics=['accuracy'])
 
-# Test the model after training
-test_results = model.evaluate(padded_inputs_test, y_test, verbose=False)
-print(f'Test results - Loss: {test_results[0]} - Accuracy: {100*test_results[1]}%')
+model.fit(train_images, train_labels, epochs=10)
+
+test_loss, test_acc = model.evaluate(test_images,  test_labels, verbose=2)
+
+print('\nTest accuracy:', test_acc)
